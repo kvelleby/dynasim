@@ -32,7 +32,7 @@ def Simulator(formulas,
     # TODO: Functionality for choosing own beta-estimates.
     betasli = [draw_betas(model, nsim) for model in models]
     # TODO: Test and report missing data in setup_data
-    df = setup_data(df, start, end)
+    df = setup_data(df, formulas, timevar, start, end)
     # TODO: Faster simulation in simulate
     results, summaryvars = simulate(formulas, 
                        betasli, 
