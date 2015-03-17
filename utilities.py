@@ -12,8 +12,17 @@ vdecide = np.vectorize(decide)
 def inv_logit(x):
     return (1 + np.tanh(x / 2)) / 2
 
-def draw_betas(model, nsim):
-    return(np.random.multivariate_normal(model.params, model.cov_params(), nsim))
+def draw_betas(model, modeltype, nsim):
+    # Due to a bug in statsmodels.MNLogit (to do with the pandas wrapper),
+    # we must use model_results.cov_params as of now.
+    if modeltype == 'mlogit':
+        return(np.random.multivariate_normal(np.ravel(model.params, order=True),
+                                             model._results.cov_params(), 
+                                             nsim))
+    else:
+        return(np.random.multivariate_normal(model.params, 
+                                             model.cov_params(), 
+                                             nsim))
 
 def find_lhsvars(formulas):
     return([formula.split("~")[0].strip() for formula in formulas])
@@ -42,6 +51,8 @@ def apply_ts(df, tslist):
             df[d['name']] = (df.groupby(level=1)[d['var']]
                                .shift(d['lag'])
                             )
+            if 'value' in d.keys():
+                df[d['name']] = df[d['name']] == d['value']
         if 'ts' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
                                .transform(time_since, 

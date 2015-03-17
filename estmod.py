@@ -10,12 +10,19 @@ def est_model(formula, modtype, df, timevar, start):
     formula and df. The function only estimates on
     data from timevar up until start (of simulation).
     '''
-    y, X = patsy.dmatrices(formula, 
-            df.loc[df.index.get_level_values(timevar) <= start])
     if modtype == 'logit':
+        y, X = patsy.dmatrices(formula, 
+                df.loc[df.index.get_level_values(timevar) <= start])
         model = sm.Logit(y, X).fit()
     elif modtype == 'identity':
+        y, X = patsy.dmatrices(formula, 
+                df.loc[df.index.get_level_values(timevar) <= start])
         model = sm.OLS(y, X).fit()
+    elif modtype == 'mlogit':
+        y, X = patsy.dmatrices(formula,
+                df.loc[df.index.get_level_values(timevar) <= start], 
+                return_type='dataframe')
+        model = sm.MNLogit(y, X).fit()
     else:
         raise TypeError('Unknown model type, %s.' % modtype)
     return(model)
