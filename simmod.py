@@ -74,7 +74,7 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
                 probs, outcomes = multinom_sim(X, model, b)
                 outcomes = pd.DataFrame(outcomes)
                 colnames = list(outcomes.columns)
-                uvalues = np.array(range(outcomes.shape[1]))+1
+                uvalues = np.array(range(outcomes.shape[1]))
                 flat_outcome = np.sum(outcomes*uvalues, axis=1)
                 flat_outcome =  np.array(flat_outcome, dtype=np.float64)
                 df.loc[t, lhsvar] = flat_outcome
