@@ -27,15 +27,14 @@ def draw_betas(model, modeltype, nsim):
 def find_lhsvars(formulas):
     return([formula.split("~")[0].strip() for formula in formulas])
 
-def apply_ts(df, tslist):
+def apply_ts(df, tsvars):
     '''
     Calculates new variables from time-series information.
     '''
 
-    def time_since(var, criteria, tsstart):
+    def count_while(var, criteria):
         '''
         Count time as long as variable meets criteria, then resets
-        tsstart: Starting count value for time-series that enter data 
         '''
         def rolling_count(val, criteria):
             if eval('val'+criteria):
@@ -43,26 +42,25 @@ def apply_ts(df, tslist):
             else:
                 rolling_count.count = 1
             return rolling_count.count
-        rolling_count.count = tsstart 
+        rolling_count.count = 0
         return(var.apply(rolling_count, criteria=criteria))
 
-    for d in tslist:
+    for d in tsvars:
         if 'lag' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
                                .shift(d['lag'])
                             )
             if 'value' in d.keys():
                 df[d['name']] = df[d['name']] == d['value']
-        if 'ts' in d.keys():
+        if 'cw' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
-                               .transform(time_since, 
-                                          criteria=d['ts'], 
-                                          tsstart=d['tsstart'])
+                               .transform(count_while, 
+                                          criteria=d['cw'])
                             )
-        if 'rmean' in d.keys():
+        if 'ma' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
                                .transform(pd.rolling_mean, 
-                                          window=d['rmean'])
+                                          window=d['ma'])
                             )
     return(df)
 

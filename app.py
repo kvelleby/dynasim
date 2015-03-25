@@ -12,13 +12,14 @@ from setupdata import setup_data
 
 def Simulator(formulas,
             modtypes,
-            tslist,
+            tsvars,
             df,
             groupvar,
             timevar,
             nsim,
             start,
             end,
+            filename='',
             models=None):
     '''
     Main program call
@@ -26,7 +27,7 @@ def Simulator(formulas,
     df = df.reset_index()
     df = df.set_index([timevar, groupvar])
     # TODO: Difference t - (t-1)
-    df = apply_ts(df, tslist) 
+    df = apply_ts(df, tsvars) 
     models = evaluate_model_call(models, df, modtypes, formulas, timevar, start)
     # TODO: Functionality for choosing own beta-estimates.
     betasli = [draw_betas(model, modtype, nsim) 
@@ -43,6 +44,7 @@ def Simulator(formulas,
                        timevar, 
                        start, 
                        end,
-                       tslist)
+                       tsvars,
+                       filename)
     return(models, betasli, df, results, summaryvars)
 

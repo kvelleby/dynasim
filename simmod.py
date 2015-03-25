@@ -2,12 +2,26 @@ import pandas as pd
 import numpy as np
 from numpy import log
 import patsy
+import h5py
 from utilities import vdecide, inv_logit, find_lhsvars, apply_ts
+import streamers
 import pdb
 
-def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end, tslist):
+def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
+        tsvars, filename):
+    '''
+    Flow: Work on the df, take a backup at the end of each simulation.
+    I use pandas dataframe all the way.
+    Pros: Simple to write
+    Cons: A lot of copy/overwrite, rather than lookups and writes.
+          Pandas is slow.
+    '''
 
     def multinom_sim(X, model, b):
+        '''
+        Returns two  K*nobs matrices, one for probabilities and one for
+        simulated outcomes.
+        '''
         nparam = len(model.params)
         K = (b.shape[0]/nparam) + 1
         b=b.reshape((K-1, nparam))
@@ -22,15 +36,8 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
             dtype=colnames)
         return(probs.T, outcomes)
     
-    def sim_time_generator(timepoints, sims):
-        for sim in sims:
-            for t in timepoints:
-                yield sim,t
-
     timeselection = np.logical_and(df.index.get_level_values(timevar)>=start,
                      df.index.get_level_values(timevar)<=end)
-    timepoints = range(start+1, end+1)
-    sims = range(0, nsim)
     lhsvars = find_lhsvars(formulas)
     summaryvars = lhsvars[:]
     nunits = len(df.loc[start].index)
@@ -53,34 +60,42 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
     shp = placeholder.shape
     shp = list(shp)
     shp.append(nsim)
-    result = np.empty(tuple(shp))
-    for sim, t in sim_time_generator(timepoints, sims):
-        #print(sim, t)
-        df = apply_ts(df, tslist)
-        for lhsvar, betas, formula, model, modtype in  zip(
-                lhsvars, betasli, formulas, models, modtypes):
-            y, X = patsy.dmatrices(formula, df.ix[t])
-            b = betas[sim].T
-            if modtype == 'identity':
-                df.loc[t, lhsvar]  = X.dot(b)
-            if modtype == 'logit':
-                name = 'p_'+lhsvar
-                df.loc[t, name]  = inv_logit(X.dot(b))
-                nature = np.random.uniform(size=(nunits))
-                df.loc[t, lhsvar]  = vdecide(nature, df.loc[t, name])
-            if modtype == 'mlogit':
-                # This structure assumes strict naming-conventions
-                # 0 is base, then next outcomes must be consequtive 1,2,3..etc.
-                probs, outcomes = multinom_sim(X, model, b)
-                outcomes = pd.DataFrame(outcomes)
-                colnames = list(outcomes.columns)
-                uvalues = np.array(range(outcomes.shape[1]))
-                flat_outcome = np.sum(outcomes*uvalues, axis=1)
-                flat_outcome =  np.array(flat_outcome, dtype=np.float64)
-                df.loc[t, lhsvar] = flat_outcome
-                pnames = ['p_'+name for name in colnames]
-                df.loc[t, pnames] = probs
-        result[:,:,sim] = np.array(df[summaryvars].loc[timeselection])
+    if filename == '':
+        result = np.empty(tuple(shp))
+    else:
+        f = h5py.File(filename, 'w')
+        result = f.create_dataset("simulation_results", tuple(shp), dtype='float64')
+    for sim in range(nsim):
+        tsstreams = [streamers.init_order(nunits, tsvar) for tsvar in tsvars]
+        for t in range(start+1, end+1):
+            [streamers.update_df(df, t, stream) for stream in tsstreams]
+            for lhsvar, betas, formula, model, modtype in  zip(
+                    lhsvars, betasli, formulas, models, modtypes):
+                y, X = patsy.dmatrices(formula, df.ix[t])
+                b = betas[sim].T
+                if modtype == 'identity':
+                    df.loc[t, lhsvar]  = X.dot(b)
+                if modtype == 'logit':
+                    name = 'p_'+lhsvar
+                    df.loc[t, name]  = inv_logit(X.dot(b))
+                    nature = np.random.uniform(size=(nunits))
+                    df.loc[t, lhsvar]  = vdecide(nature, df.loc[t, name])
+                if modtype == 'mlogit':
+                    # This structure assumes strict naming-conventions
+                    # 0 is base, then next outcomes must be consequtive 1,2,3..etc.
+                    probs, outcomes = multinom_sim(X, model, b)
+                    outcomes = pd.DataFrame(outcomes)
+                    colnames = list(outcomes.columns)
+                    uvalues = np.array(range(outcomes.shape[1]))
+                    flat_outcome = np.sum(outcomes*uvalues, axis=1)
+                    flat_outcome =  np.array(flat_outcome, dtype=np.float64)
+                    df.loc[t, lhsvar] = flat_outcome
+                    pnames = ['p_'+name for name in colnames]
+                    df.loc[t, pnames] = probs
+
+                result[:,:,sim] = np.array(df[summaryvars].loc[timeselection], dtype=np.float64)
+    if filename != '':
+        f.close()
 
     return(result, summaryvars)
 
