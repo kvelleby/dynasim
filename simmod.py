@@ -49,7 +49,7 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
             summaryvars.append(name)
         if modtype == 'mlogit':
             nparam = len(model.params)
-            K = (betas.shape[0]/nparam) + 1
+            K = (betas.shape[1]/nparam) + 1
             colnames = ['p_'+lhsvar+str(num) for num, k in enumerate(range(K))]
             for num, name in enumerate(colnames):
                 df[name] = (df[lhsvar]==num).astype(int)
@@ -59,12 +59,15 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
     placeholder = np.array(df[summaryvars].loc[timeselection])
     shp = placeholder.shape
     shp = list(shp)
-    shp.append(nsim)
+    shp.insert(0,nsim)
     if filename == '':
         result = np.empty(tuple(shp))
     else:
         f = h5py.File(filename, 'w')
-        result = f.create_dataset("simulation_results", tuple(shp), dtype='float64')
+        result = f.create_dataset("simulation_results", 
+                                  tuple(shp), 
+                                  dtype='float64',
+                                  compression='lzf')
     for sim in range(nsim):
         tsstreams = [streamers.init_order(nunits, tsvar) for tsvar in tsvars]
         for t in range(start+1, end+1):
@@ -93,7 +96,7 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
                     pnames = ['p_'+name for name in colnames]
                     df.loc[t, pnames] = probs
 
-                result[:,:,sim] = np.array(df[summaryvars].loc[timeselection], dtype=np.float64)
+        result[sim,:,:] = np.array(df[summaryvars].loc[timeselection], dtype=np.float64)
     if filename != '':
         f.close()
 
