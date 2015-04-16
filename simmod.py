@@ -5,10 +5,11 @@ import patsy
 import h5py
 from utilities import vdecide, inv_logit, find_lhsvars, apply_ts
 import streamers
+import spatial
 import pdb
 
 def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
-        tsvars, filename):
+        tsvars, spatialdicts, filename):
     '''
     Flow: Work on the df, take a backup at the end of each simulation.
     I use pandas dataframe all the way.
@@ -68,16 +69,24 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
                                   tuple(shp), 
                                   dtype='float64',
                                   compression='lzf')
+    # Replace nan with -99 as patsy will remove all observations
+    df = df.fillna(-99)
     for sim in range(nsim):
         tsstreams = [streamers.init_order(nunits, tsvar) for tsvar in tsvars]
         for t in range(start+1, end+1):
-            [streamers.update_df(df, t, stream) for stream in tsstreams]
+            for stream in tsstreams:
+                update = streamers.tick(
+                        stream['streamers'], df.loc[t-1, stream['var']].values)
+                df.loc[t, stream['name']] = update
+            [spatial.update_df(df, t, sdict) for sdict in spatialdicts]
             for lhsvar, betas, formula, model, modtype in  zip(
                     lhsvars, betasli, formulas, models, modtypes):
                 y, X = patsy.dmatrices(formula, df.ix[t])
                 b = betas[sim].T
+                #print(sim, t, modtype)
                 if modtype == 'identity':
-                    df.loc[t, lhsvar]  = X.dot(b)
+                    outcome = X.dot(b)
+                    df.loc[t, lhsvar]  = outcome
                 if modtype == 'logit':
                     name = 'p_'+lhsvar
                     df.loc[t, name]  = inv_logit(X.dot(b))

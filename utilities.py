@@ -1,5 +1,45 @@
 import numpy as np
 import pandas as pd
+import patsy
+import itertools
+import re
+
+# Select relevant columns and remove missing:
+def find_innerterm(term):
+    parenthesis = re.compile("\(")
+    if parenthesis.search(term) == None:
+        innerterm = term
+    else:
+        reinner = re.compile("\((.*)\)")
+        innerterm = reinner.search(term).group(1)
+    return(innerterm)
+def find_innerterms(formula):
+    env = patsy.EvalEnvironment.capture()
+    md = patsy.ModelDesc.from_formula(formula, env)
+    terms = list(itertools.chain.from_iterable([md.rhs_termlist, md.lhs_termlist]))
+    reterm = re.compile("'([\w\.()]*)'")
+    res = [reterm.findall(str(term)) for term in terms]
+    flat_res = list(itertools.chain.from_iterable(res))
+    innerterms = [find_innerterm(term) for term in flat_res]
+    return(innerterms)
+def find_dependent(formula):
+    return(formula.split('~')[0].strip())
+def find_endogvars(formulas, tsvars, spatialdicts):
+    depnames = [find_dependent(formula) for formula in formulas]
+    tsnames = [d['name'] for d in tsvars]
+    spatnames = [d['name'] for d in spatialdicts]
+    endogvars = set(depnames + tsnames + spatnames)
+    return endogvars
+
+def define_varsets(formulas, tsvars, spatialdicts, groupvar, timevar):
+    innerterms = [find_innerterms(formula) for formula in formulas]
+    flat_innerterms = list(itertools.chain.from_iterable(innerterms))
+    endogset = find_endogvars(formulas, tsvars, spatialdicts)
+    innertermset = set(flat_innerterms)
+    structvarset = set([groupvar, timevar])
+    exogset = innertermset - endogset 
+    depset = set([find_dependent(formula) for formula in formulas])
+    return endogset, exogset, depset, innertermset, structvarset
 
 def decide(nature, risk): 
     if nature < risk: 

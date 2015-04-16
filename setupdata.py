@@ -1,32 +1,12 @@
 import numpy as np
 import pandas as pd
-import patsy
-import re
-import itertools
 import pdb
 
-def setup_data(df, formulas, timevar, start, end):
-    # Select relevant columns and remove missing:
-    def find_innerterm(term):
-        parenthesis = re.compile("\(")
-        if parenthesis.search(term) == None:
-            innerterm = term
-        else:
-            reinner = re.compile("\((.*)\)")
-            innerterm = reinner.search(term).group(1)
-        return(innerterm)
-    def find_innerterms(formula):
-        env = patsy.EvalEnvironment.capture()
-        md = patsy.ModelDesc.from_formula(formula, env)
-        terms = list(itertools.chain.from_iterable([md.rhs_termlist, md.lhs_termlist]))
-        reterm = re.compile("'([\w\.()]*)'")
-        res = [reterm.findall(str(term)) for term in terms]
-        flat_res = list(itertools.chain.from_iterable(res))
-        innerterms = [find_innerterm(term) for term in flat_res]
-        return(innerterms)
-    innerterms = [find_innerterms(formula) for formula in formulas]
-    flat_innerterms = list(itertools.chain.from_iterable(innerterms))
-    df = df[flat_innerterms].dropna()
+def setup_data(df, innertermset, exogset, timevar, groupvar, start, end):
+    # Here, should only drop if exogenous indepvars are missing. 
+    innerterms = list(innertermset)
+    exogterms = list(exogset)
+    df = df[innerterms].dropna(subset=exogterms)
 
     # Only retain data needed for simulation:
     allunits = np.array(df.index.levels[1])
@@ -47,7 +27,9 @@ def setup_data(df, formulas, timevar, start, end):
         df.drop(units_to_drop, axis='minor', inplace=True)
     if len(time_to_drop) > 0:
         df.drop(time_to_drop, axis='major', inplace=True)
-    df = df.to_frame()
+    df = df.to_frame(filter_observations=False)
+    # Here I must again remove observations that where dropped.
+    df = df.dropna(subset=exogterms)
     
     # Test if unit exists for each consecutive time-point
     def is_consecutive(ts):
@@ -57,14 +39,22 @@ def setup_data(df, formulas, timevar, start, end):
         df = df.reset_index()
         return(is_consecutive(df[col]))
     def remove_not_consecutive(df, col):
-        consecutive_ts = df.groupby(level=1).apply(test_is_consecutive, col)
+        df2 = df.copy()
+        try:
+            df2 = df2.drop(groupvar, axis=1)
+        except ValueError:
+            pass
+        try:
+            df2 = df2.drop(timevar, axis=1)
+        except ValueError:
+            pass
+        consecutive_ts = df2.groupby(level=1).apply(test_is_consecutive, col)
         not_consecutive_ts = list(consecutive_ts[consecutive_ts == False])
         df = df.to_panel()
         df.drop(not_consecutive_ts, axis='minor', inplace=True)
-        df = df.to_frame()
+        df = df.to_frame(filter_observations=False)
         return(df)
         
     df = remove_not_consecutive(df, timevar)
-
 
     return(df)

@@ -85,4 +85,4 @@ def init_order(nunits, tsvar):
     return(d)
 
 def update_df(df, t, stream):
-    df.loc[t, stream['name']] = tick(stream['streamers'], df.loc[t, stream['var']].values)
+    df.loc[t, stream['name']] = tick(stream['streamers'], df.loc[t-1, stream['var']].values)
