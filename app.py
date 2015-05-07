@@ -8,55 +8,80 @@ from spatial import apply_spatial_lag
 from simmod import simulate
 from estmod import evaluate_model_call
 from setupdata import setup_data
-import numpy as np
 
 # TODO: Support for hierarchical models
+class DynaSim(object):
 
-def Simulator(formulas,
-            modtypes,
-            tsvars,
-            spatialdicts,
-            df,
-            groupvar,
-            timevar,
-            nsim,
-            start,
-            end,
-            filename='',
-            models=None):
-    '''
-    Main program call
-    '''
-    df = df.reset_index()
-    df = df.set_index([timevar, groupvar], drop=False)
-    endogset, exogset, depset, innertermset, structvarset = define_varsets(formulas, 
-                                                             tsvars, 
-                                                             spatialdicts,
-                                                             groupvar,
-                                                             timevar)
-    # TODO: Difference t - (t-1)
-    df = apply_ts(df, tsvars)
-    if len(spatialdicts) > 0:
-        [apply_spatial_lag(df, sdict, groupvar, timevar, cshapes=True) 
+    """Docstring for . """
+
+    def __init__(self,
+                 formulas,
+                 modtypes,
+                 tsvars,
+                 spatialdicts,
+                 df,
+                 groupvar,
+                 timevar,
+                 nsim,
+                 start,
+                 end,
+                 filename='',
+                 models=None):
+
+        self.formulas = formulas
+        self.modtypes = modtypes
+        self.tsvars = tsvars
+        self.spatialdicts = spatialdicts
+        self.groupvar = groupvar
+        self.timevar = timevar
+        self.nsim = nsim
+        self.start = start
+        self.end = end
+        self.filename = filename
+        self.models = models
+
+        self.df = df
+        self.df = self.df.reset_index()
+        self.df = self.df.set_index([timevar, groupvar], drop=False)
+
+        self.varsets = define_varsets(self.formulas, self.tsvars, self.spatialdicts, self.groupvar, self.timevar)
+
+    def calculate_model_ts(self):
+        self.df = apply_ts(self.df, self.tsvars)
+    def calculate_model_spatial_vars(self, cshapes=True):
+        [apply_spatial_lag(self.df, sdict, self.groupvar, self.timevar, cshapes)
                 for sdict in spatialdicts]
-    models = evaluate_model_call(models, df, modtypes, formulas, timevar, start)
-    # TODO: Functionality for choosing own beta-estimates.
-    betasli = [draw_betas(model, modtype, nsim) 
-               for model, modtype in zip(models, modtypes)]
-    # TODO: Test and report missing data in setup_data
-    df = setup_data(df, innertermset, exogset, timevar, groupvar, start, end)
-    # TODO: Faster simulation in simulate
-    results, summaryvars = simulate(formulas, 
-                       betasli, 
-                       modtypes, 
-                       models,
-                       df, 
-                       nsim, 
-                       timevar, 
-                       start, 
-                       end,
-                       tsvars,
-                       spatialdicts,
-                       filename)
-    return(models, betasli, df, results, summaryvars)
+                                        
+    def estimate(self):
+        self.models = evaluate_model_call(self.models, 
+                                          self.df, 
+                                          self.modtypes, 
+                                          self.formulas, 
+                                          self.timevar, 
+                                          self.start)
+    def calculate_betas(self):
+        self.betasli = [draw_betas(model, modtype, self.nsim)
+                        for model, modtype in zip(self.models, self.modtypes)]
 
+    def setup_simulation_data(self):
+        self.simdf = setup_data(self.df, 
+                                self.varsets['innertermset'],
+                                self.varsets['exogset'],
+                                self.timevar, 
+                                self.groupvar, 
+                                self.start,
+                                self.end)
+
+    def sim(self):
+        self.results, self.summaryvars = simulate(self.formulas,
+                                                  self.betasli,
+                                                  self.modtypes,
+                                                  self.models,
+                                                  self.simdf,
+                                                  self.nsim,
+                                                  self.timevar,
+                                                  self.start,
+                                                  self.end,
+                                                  self.tsvars,
+                                                  self.spatialdicts,
+                                                  self.filename)

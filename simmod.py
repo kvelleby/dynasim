@@ -11,26 +11,22 @@ import pdb
 def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
         tsvars, spatialdicts, filename):
     '''
-    Flow: Work on the df, take a backup at the end of each simulation.
-    I use pandas dataframe all the way.
-    Pros: Simple to write
-    Cons: A lot of copy/overwrite, rather than lookups and writes.
-          Pandas is slow.
+    Documentation
     '''
 
-    def multinom_sim(X, model, b):
+    def multinom_sim(X, model, beta):
         '''
         Returns two  K*nobs matrices, one for probabilities and one for
         simulated outcomes.
         '''
         nparam = len(model.params)
-        K = (b.shape[0]/nparam) + 1
-        b=b.reshape((K-1, nparam))
+        K = (beta.shape[0]/nparam) + 1
+        beta=beta.reshape((K-1, nparam))
         nobs = X.shape[0]
 
         probs = np.zeros((K, nobs))
         for k in range(K-1):
-            probs[k+1] = np.exp(X.dot(b[k])) / (1 + np.sum(np.exp(X.dot(b.T)), axis=1))
+            probs[k+1] = np.exp(X.dot(beta[k])) / (1 + np.sum(np.exp(X.dot(beta.T)), axis=1))
         probs[0] = 1 - np.sum(probs, axis=0)
         colnames = [(lhsvar+str(num), 'int64') for num, k in enumerate(range(K))]
         outcomes = np.array([tuple(np.random.multinomial(1, prob)) for prob in probs.T], 
@@ -82,20 +78,20 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
             for lhsvar, betas, formula, model, modtype in  zip(
                     lhsvars, betasli, formulas, models, modtypes):
                 y, X = patsy.dmatrices(formula, df.ix[t])
-                b = betas[sim].T
+                beta = betas[sim].T
                 #print(sim, t, modtype)
                 if modtype == 'identity':
-                    outcome = X.dot(b)
+                    outcome = X.dot(beta)
                     df.loc[t, lhsvar]  = outcome
                 if modtype == 'logit':
                     name = 'p_'+lhsvar
-                    df.loc[t, name]  = inv_logit(X.dot(b))
+                    df.loc[t, name]  = inv_logit(X.dot(beta))
                     nature = np.random.uniform(size=(nunits))
                     df.loc[t, lhsvar]  = vdecide(nature, df.loc[t, name])
                 if modtype == 'mlogit':
                     # This structure assumes strict naming-conventions
                     # 0 is base, then next outcomes must be consequtive 1,2,3..etc.
-                    probs, outcomes = multinom_sim(X, model, b)
+                    probs, outcomes = multinom_sim(X, model, beta)
                     outcomes = pd.DataFrame(outcomes)
                     colnames = list(outcomes.columns)
                     uvalues = np.array(range(outcomes.shape[1]))

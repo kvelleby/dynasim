@@ -39,7 +39,12 @@ def define_varsets(formulas, tsvars, spatialdicts, groupvar, timevar):
     structvarset = set([groupvar, timevar])
     exogset = innertermset - endogset 
     depset = set([find_dependent(formula) for formula in formulas])
-    return endogset, exogset, depset, innertermset, structvarset
+    d = {'endogset': endogset,
+         'exogset': exogset,
+         'depset': depset,
+         'innertermset': innertermset,
+         'structvarset': structvarset}
+    return d
 
 def decide(nature, risk): 
     if nature < risk: 

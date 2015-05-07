@@ -56,5 +56,6 @@ def setup_data(df, innertermset, exogset, timevar, groupvar, start, end):
         return(df)
         
     df = remove_not_consecutive(df, timevar)
+    df = df.dropna(subset=exogterms)
 
     return(df)
