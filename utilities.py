@@ -14,8 +14,7 @@ def find_innerterm(term):
         innerterm = reinner.search(term).group(1)
     return(innerterm)
 def find_innerterms(formula):
-    env = patsy.EvalEnvironment.capture()
-    md = patsy.ModelDesc.from_formula(formula, env)
+    md = patsy.ModelDesc.from_formula(formula)
     terms = list(itertools.chain.from_iterable([md.rhs_termlist, md.lhs_termlist]))
     reterm = re.compile("'([\w\.()]*)'")
     res = [reterm.findall(str(term)) for term in terms]
@@ -37,7 +36,7 @@ def define_varsets(formulas, tsvars, spatialdicts, groupvar, timevar):
     endogset = find_endogvars(formulas, tsvars, spatialdicts)
     innertermset = set(flat_innerterms)
     structvarset = set([groupvar, timevar])
-    exogset = innertermset - endogset 
+    exogset = innertermset - endogset
     depset = set([find_dependent(formula) for formula in formulas])
     d = {'endogset': endogset,
          'exogset': exogset,
@@ -46,8 +45,8 @@ def define_varsets(formulas, tsvars, spatialdicts, groupvar, timevar):
          'structvarset': structvarset}
     return d
 
-def decide(nature, risk): 
-    if nature < risk: 
+def decide(nature, risk):
+    if nature < risk:
         return 1
     else:
         return 0
@@ -62,11 +61,11 @@ def draw_betas(model, modeltype, nsim):
     # we must use model_results.cov_params as of now.
     if modeltype == 'mlogit':
         return(np.random.multivariate_normal(np.ravel(model.params, order=True),
-                                             model._results.cov_params(), 
+                                             model._results.cov_params(),
                                              nsim))
     else:
-        return(np.random.multivariate_normal(model.params, 
-                                             model.cov_params(), 
+        return(np.random.multivariate_normal(model.params,
+                                             model.cov_params(),
                                              nsim))
 
 def find_lhsvars(formulas):
@@ -99,12 +98,12 @@ def apply_ts(df, tsvars):
                 df[d['name']] = df[d['name']] == d['value']
         if 'cw' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
-                               .transform(count_while, 
+                               .transform(count_while,
                                           criteria=d['cw'])
                             )
         if 'ma' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
-                               .transform(pd.rolling_mean, 
+                               .transform(pd.rolling_mean,
                                           window=d['ma'])
                             )
     return(df)
