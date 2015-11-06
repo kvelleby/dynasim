@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from numba import vectorize
 import patsy
 import itertools
 import re
@@ -45,13 +46,12 @@ def define_varsets(formulas, tsvars, spatialdicts, groupvar, timevar):
          'structvarset': structvarset}
     return d
 
-def decide(nature, risk):
+@vectorize
+def vdecide(nature, risk):
     if nature < risk:
         return 1
     else:
         return 0
-# Vectorize the function for use with numpy arrays
-vdecide = np.vectorize(decide)
 
 def inv_logit(x):
     return (1 + np.tanh(x / 2)) / 2
@@ -84,7 +84,7 @@ def apply_ts(df, tsvars):
             if eval('val'+criteria):
                 rolling_count.count +=1
             else:
-                rolling_count.count = 1
+                rolling_count.count = 0
             return rolling_count.count
         rolling_count.count = 0
         return(var.apply(rolling_count, criteria=criteria))
@@ -98,12 +98,12 @@ def apply_ts(df, tsvars):
                 df[d['name']] = df[d['name']] == d['value']
         if 'cw' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
-                               .transform(count_while,
+                               .apply(count_while,
                                           criteria=d['cw'])
                             )
         if 'ma' in d.keys():
             df[d['name']] = (df.groupby(level=1)[d['var']]
-                               .transform(pd.rolling_mean,
+                               .apply(pd.rolling_mean,
                                           window=d['ma'])
                             )
     return(df)

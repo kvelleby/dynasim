@@ -29,16 +29,16 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
             probs[k+1] = np.exp(X.dot(beta[k])) / (1 + np.sum(np.exp(X.dot(beta.T)), axis=1))
         probs[0] = 1 - np.sum(probs, axis=0)
         colnames = [(lhsvar+str(num), 'int64') for num, k in enumerate(range(K))]
-        outcomes = np.array([tuple(np.random.multinomial(1, prob)) for prob in probs.T], 
+        outcomes = np.array([tuple(np.random.multinomial(1, prob)) for prob in probs.T],
             dtype=colnames)
         return(probs.T, outcomes)
-    
+
     timeselection = np.logical_and(df.index.get_level_values(timevar)>=start,
                      df.index.get_level_values(timevar)<=end)
     lhsvars = find_lhsvars(formulas)
     summaryvars = lhsvars[:]
     nunits = len(df.loc[start].index)
-    
+
     for lhsvar, modtype, model, betas in zip(lhsvars, modtypes, models, betasli):
         if modtype == 'logit':
             name = 'p_'+lhsvar
@@ -61,8 +61,8 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
         result = np.empty(tuple(shp))
     else:
         f = h5py.File(filename, 'w')
-        result = f.create_dataset("simulation_results", 
-                                  tuple(shp), 
+        result = f.create_dataset("simulation_results",
+                                  tuple(shp),
                                   dtype='float64',
                                   compression='lzf')
     # Replace nan with -99 as patsy will remove all observations
@@ -77,9 +77,15 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
             [spatial.update_df(df, t, sdict) for sdict in spatialdicts]
             for lhsvar, betas, formula, model, modtype in  zip(
                     lhsvars, betasli, formulas, models, modtypes):
+
+
                 y, X = patsy.dmatrices(formula, df.ix[t])
                 beta = betas[sim].T
                 #print(sim, t, modtype)
+                #print(t, df.ix[t].shape)
+                #if(X.shape[0]!=173): df.ix[t].to_csv('/tmp/tmpdf.txt')
+
+
                 if modtype == 'identity':
                     outcome = X.dot(beta)
                     df.loc[t, lhsvar]  = outcome

@@ -11,18 +11,18 @@ def est_model(formula, modtype, df, timevar, start):
     data from timevar up until start (of simulation).
     '''
     if modtype == 'logit':
-        y, X = patsy.dmatrices(formula, 
+        y, X = patsy.dmatrices(formula,
                 df.loc[df.index.get_level_values(timevar) <= start])
         model = sm.Logit(y, X).fit()
     elif modtype == 'identity':
-        y, X = patsy.dmatrices(formula, 
+        y, X = patsy.dmatrices(formula,
                 df.loc[df.index.get_level_values(timevar) <= start])
         model = sm.OLS(y, X).fit()
     elif modtype == 'mlogit':
         y, X = patsy.dmatrices(formula,
-                df.loc[df.index.get_level_values(timevar) <= start], 
+                df.loc[df.index.get_level_values(timevar) <= start],
                 return_type='dataframe')
-        model = sm.MNLogit(y, X).fit()
+        model = sm.MNLogit(y, X).fit(method="bfgs")
     else:
         raise TypeError('Unknown model type, %s.' % modtype)
     return(model)
@@ -39,10 +39,10 @@ def evaluate_model_call(models, df, modtypes, formulas, timevar, start):
             raise ValueError, message
         for num, model in enumerate(models):
             if model== None:
-                model = est_model(formulas[num], 
-                                  modtypes[num], 
-                                  df, 
-                                  timevar, 
+                model = est_model(formulas[num],
+                                  modtypes[num],
+                                  df,
+                                  timevar,
                                   start)
                 models.insert(num, model)
     return(models)

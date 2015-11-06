@@ -3,7 +3,6 @@ import numpy as np
 import fiona
 import tempfile
 import pickle
-import pdb
 
 def subset_shp(shapefile, newfile, filter_fn, t):
     with fiona.open(shapefile) as shp:
@@ -31,7 +30,7 @@ def cshapes_cross_section(t, srule='rook', rowstandardize=False):
     return w
 
 def update_df(df, t, sdict):
-    df.loc[t, sdict['name']] = pysal.lag_spatial(sdict['w'], 
+    df.loc[t, sdict['name']] = pysal.lag_spatial(sdict['w'],
             df.loc[t, sdict['var']].values)
 
 def apply_spatial_lag(df, sdict, groupvar, timevar, cshapes=False):
@@ -42,9 +41,8 @@ def apply_spatial_lag(df, sdict, groupvar, timevar, cshapes=False):
 
         for t in range(start, end):
             criteria = df.index.get_level_values(timevar) == t
-            pdb.set_trace()
-            df.loc[criteria, sdict['name']] = pysal.lag_spatial(wq[t-1946], 
-                      df.loc[criteria, sdict['var']].values) 
+            df.loc[criteria, sdict['name']] = pysal.lag_spatial(wq[t-1946],
+                      df.loc[criteria, sdict['var']].values)
 
     df[sdict['name']] = pysal.lag_spatial(sdict['w'],
             df[sdict['var']].values)

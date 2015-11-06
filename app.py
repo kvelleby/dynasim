@@ -50,25 +50,25 @@ class DynaSim(object):
         self.df = apply_ts(self.df, self.tsvars)
     def calculate_model_spatial_vars(self, cshapes=True):
         [apply_spatial_lag(self.df, sdict, self.groupvar, self.timevar, cshapes)
-                for sdict in spatialdicts]
-                                        
+                for sdict in self.spatialdicts]
+
     def estimate(self):
-        self.models = evaluate_model_call(self.models, 
-                                          self.df, 
-                                          self.modtypes, 
-                                          self.formulas, 
-                                          self.timevar, 
+        self.models = evaluate_model_call(self.models,
+                                          self.df,
+                                          self.modtypes,
+                                          self.formulas,
+                                          self.timevar,
                                           self.start)
     def calculate_betas(self):
         self.betasli = [draw_betas(model, modtype, self.nsim)
                         for model, modtype in zip(self.models, self.modtypes)]
 
     def setup_simulation_data(self):
-        self.simdf = setup_data(self.df, 
+        self.simdf = setup_data(self.df,
                                 self.varsets['innertermset'],
                                 self.varsets['exogset'],
-                                self.timevar, 
-                                self.groupvar, 
+                                self.timevar,
+                                self.groupvar,
                                 self.start,
                                 self.end)
 
