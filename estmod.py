@@ -41,7 +41,7 @@ def evaluate_model_call(models, df, modtypes, formulas, timevar, start):
     else:
         if len(models) != len(formulas):
             message = 'Length of model list is not equal to formula list'
-            raise ValueError, message
+            raise ValueError(message)
         for num, model in enumerate(models):
             if model== None:
                 model = est_model(formulas[num],
