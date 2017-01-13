@@ -1,7 +1,7 @@
 """DynaSIM spatial module
 
 This module contains functions for the handling of spatial data. Currently in
-development.
+development, does not work.
 """
 
 import pysal
@@ -15,14 +15,16 @@ def subset_shp(shapefile, newfile, filter_fn, t):
         with fiona.open(newfile, 'w', **shp.meta) as new:
             [new.write(rec) for rec in shp if filter_fn(rec, t)]
 
-def cshapes_cross_section(t, srule='rook', rowstandardize=False):
+def filter_cshapes_year(rec, t):
+    if rec['properties']['GWSYEAR'] <= t <= rec['properties']['GWEYEAR']:
+        return True
+
+def weight_from_shapefile(shapefile, srule='rook', rowstandardize=False):
     '''
     Utility function to get a weight-matrix from any given cross-section
     in cshapes. Should also work as a good example for how to create
     weight-matrices in Python.
     '''
-
-    shapefile = 'dynasim/data/cshapes/subs/cssub' + str(t) + '.shp'
     if srule == 'rook':
         w = pysal.rook_from_shapefile(shapefile)
     elif srule == 'queen':
@@ -40,6 +42,11 @@ def update_df(df, t, sdict):
             df.loc[t, sdict['var']].values)
 
 def apply_spatial_lag(df, sdict, groupvar, timevar, cshapes=False):
+    """
+    sdict['name']: name of new spatial lag variable
+    sdict['w']: spatial weight to apply
+    sdict['var']: observed variable to calculate spatial lag of
+    """
     if cshapes:
         wq = pickle.load(open('dynasim/data/cshapes_rook.p', 'rb'))
         start = df.index.levels[0].min()
