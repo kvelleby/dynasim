@@ -1,3 +1,9 @@
+"""DynaSIM spatial module
+
+This module contains functions for the handling of spatial data. Currently in
+development.
+"""
+
 import pysal
 import numpy as np
 import fiona

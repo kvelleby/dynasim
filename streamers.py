@@ -1,12 +1,18 @@
+"""DynaSIM streamers module
+This module contains streamer classes used to instantiate temporal memory in
+various ways. Currently supports moving average, lagged data and a 'count while'
+function.
+"""
+
 from collections import deque
 import numpy as np
- 
+
 class SimpleMovingAverage():
     def __init__(self, period):
         assert period == int(period) and period > 0, "Period must be an integer >0"
         self.period = period
         self.stream = deque()
- 
+
     def __call__(self, n):
         stream = self.stream
         stream.append(n)    # appends on the right
@@ -18,14 +24,14 @@ class SimpleMovingAverage():
             average = 0
         else:
             average = sum( stream ) / float(streamlength)
- 
+
         return average
 
 class Lagger():
     def __init__(self, lag):
         self.lag = lag
         self.stream = deque()
- 
+
     def __call__(self, n):
         stream = self.stream
         stream.append(n)    # appends on the right
@@ -34,14 +40,14 @@ class Lagger():
             pass
         else:
             stream.popleft()
-        
+
         return stream[0]
-    
+
 class CountWhile():
     def __init__(self, criteria):
         self.stream = list()
         self.criteria = criteria
- 
+
     def __call__(self, n):
         stream = self.stream
         streamlength = 0
@@ -56,20 +62,20 @@ def tick(streamers, newdata):
     return([c(newdata[num]) for num, c in enumerate(streamers)])
 
 def init_lag(nunits, name, var, lag):
-    d = {'name': name, 
+    d = {'name': name,
          'var': var,
          'streamers': [Lagger(lag) for streamer in range(nunits)]}
     return(d)
 
 def init_count_while(nunits, name, var, cw):
-    d = {'name': name, 
+    d = {'name': name,
          'var': var,
          'streamers': [CountWhile(cw) for streamer in range(nunits)]}
     return(d)
 
 def init_moving_average(nunits, name, var, ma):
-    d = {'name': name, 
-         'var': var, 
+    d = {'name': name,
+         'var': var,
          'streamers': [SimpleMovingAverage(ma) for streamer in range(nunits)]}
     return(d)
 

@@ -1,3 +1,8 @@
+"""DynaSIM utilities module
+
+This module contains various functions that is used in DynaSIM.
+"""
+
 import numpy as np
 import pandas as pd
 from numba import vectorize

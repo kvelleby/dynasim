@@ -1,3 +1,8 @@
+""" DynaSIM estimation module
+This module is a wrapper for estimating regression models. It supports logit,
+OLS and multinomial logit models.
+"""
+
 import statsmodels.api as sm
 import patsy
 import pandas as pd

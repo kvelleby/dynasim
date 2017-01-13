@@ -1,13 +1,20 @@
+"""DynaSIM: Main application
+
+This module defines the dynasim class, which is where you contain the
+simulation setup, data, and functions.
+"""
+
 from __future__ import print_function
+from __future__ import division
 import pandas as pd
 import pdb
 
 # DynaSim modules
-from utilities import draw_betas, apply_ts, define_varsets
-from spatial import apply_spatial_lag
-from simmod import simulate
-from estmod import evaluate_model_call
-from setupdata import setup_data
+from dynasim.utilities import draw_betas, apply_ts, define_varsets
+from dynasim.spatial import apply_spatial_lag
+from dynasim.simmod import simulate
+from dynasim.estmod import evaluate_model_call
+from dynasim.setupdata import setup_data
 
 # TODO: Support for hierarchical models
 class DynaSim(object):

@@ -1,11 +1,16 @@
+"""Dynasim simulation module
+This module simulates dynamic spatial models and saves the output to a
+hdf-5 file.
+"""
+
 import pandas as pd
 import numpy as np
 from numpy import log
 import patsy
 import h5py
-from utilities import vdecide, inv_logit, find_lhsvars, apply_ts
-import streamers
-import spatial
+from dynasim.utilities import vdecide, inv_logit, find_lhsvars, apply_ts
+import dynasim.streamers as streamers
+import dynasim.spatial
 import pdb
 
 def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
@@ -20,7 +25,7 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
         simulated outcomes.
         '''
         nparam = len(model.params)
-        K = (beta.shape[0]/nparam) + 1
+        K = (beta.shape[0]//nparam) + 1
         beta=beta.reshape((K-1, nparam))
         nobs = X.shape[0]
 
@@ -46,7 +51,7 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
             summaryvars.append(name)
         if modtype == 'mlogit':
             nparam = len(model.params)
-            K = (betas.shape[1]/nparam) + 1
+            K = (betas.shape[1]//nparam) + 1
             colnames = ['p_'+lhsvar+str(num) for num, k in enumerate(range(K))]
             for num, name in enumerate(colnames):
                 df[name] = (df[lhsvar]==num).astype(int)

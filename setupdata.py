@@ -1,9 +1,17 @@
+""" DynaSIM data setup module
+This module takes a unit-time long-format table and converts it into a nump
+array. It also removes variables not used in the simulation, and checks that
+all units have observations for each consecutive time-point. It automatically
+removes all non-consecutive observations.
+
+"""
+
 import numpy as np
 import pandas as pd
 import pdb
 
 def setup_data(df, innertermset, exogset, timevar, groupvar, start, end):
-    # Here, should only drop if exogenous indepvars are missing. 
+    # Here, should only drop if exogenous indepvars are missing.
     innerterms = list(innertermset)
     exogterms = list(exogset)
     df = df[innerterms].dropna(subset=exogterms)
@@ -19,7 +27,7 @@ def setup_data(df, innertermset, exogset, timevar, groupvar, start, end):
         l = [unit for unit in allunits if unit not in l]
         # Union operator |=
         units_to_drop |= set(l)
-        
+
     units_to_drop = list(units_to_drop)
 
     df = df.to_panel()
@@ -30,7 +38,7 @@ def setup_data(df, innertermset, exogset, timevar, groupvar, start, end):
     df = df.to_frame(filter_observations=False)
     # Here I must again remove observations that where dropped.
     df = df.dropna(subset=exogterms)
-    
+
     # Test if unit exists for each consecutive time-point
     def is_consecutive(ts):
         not_consecutive = [(a,b) for a,b in zip(ts,ts[1:]) if b != a+1]
@@ -54,7 +62,7 @@ def setup_data(df, innertermset, exogset, timevar, groupvar, start, end):
         df.drop(not_consecutive_ts, axis='minor', inplace=True)
         df = df.to_frame(filter_observations=False)
         return(df)
-        
+
     df = remove_not_consecutive(df, timevar)
     df = df.dropna(subset=exogterms)
 
