@@ -35,9 +35,15 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
     end : integer
           Last time of simulation. Simulation includes this time period.
     tsvars : list of dictionaries
+             Must contain keys 'name' and 'var', and one of 'lag', 'cw' or 'ma'.
+             'name' is new variable.
+             'var' is old variable.
+             'lag', 'cw' and 'ma' are different time-series functions (lag, count while, and moving average).
     spatialdicts : list of dictionaries
                    Currently not supported.
     filename : string or None
+               Relative path to where you want to store results.
+               Results are stored in HDF-5, so should end with .hdf5
                If None is supplied, results are stored in memory.
 
     Returns
