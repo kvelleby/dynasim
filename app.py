@@ -32,7 +32,7 @@ class DynaSim(object):
                  nsim,
                  start,
                  end,
-                 filename='',
+                 filename=None,
                  models=None):
 
         self.formulas = formulas

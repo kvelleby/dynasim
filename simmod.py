@@ -62,7 +62,7 @@ def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
     shp = placeholder.shape
     shp = list(shp)
     shp.insert(0,nsim)
-    if filename == '':
+    if filename is None:
         result = np.empty(tuple(shp))
     else:
         f = h5py.File(filename, 'w')
