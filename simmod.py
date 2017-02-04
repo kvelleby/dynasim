@@ -15,8 +15,40 @@ import pdb
 
 def simulate(formulas, betasli, modtypes, models, df, nsim, timevar, start, end,
         tsvars, spatialdicts, filename):
-    '''
-    Documentation
+    ''' Simulate iteratively a list of regression models over time.
+
+    Parameters
+    ----------
+    formulas : list of patsy formula strings
+    betasli: list of array-like, shape [n_models (n_samples, n_features)]
+    modtypes: list of strings
+              Must be either 'identity', 'logit' or 'mlogit' and in the same
+              order as models in formulas and parameters in betasli.
+    df : Pandas dataframe
+         Must contain variables named in formulas, and be a balanced panel data.
+    nsim : integer
+           Number of simulations
+    timevar : string
+              Name of integer variable denoting the time.
+    start : integer
+            Start time of simulation. First simulated outcome is at start + 1.
+    end : integer
+          Last time of simulation. Simulation includes this time period.
+    tsvars : list of dictionaries
+    spatialdicts : list of dictionaries
+                   Currently not supported.
+    filename : string or None
+               If None is supplied, results are stored in memory.
+
+    Returns
+    -------
+    tuple (results, summaryvars)
+
+    results : array-like, shape (n_sims, n_time, n_units)
+              If filename is None, this is a numpy array.
+              If filename is specified, this is a HDF-5 file, which is closed.
+    summaryvars : list
+                  A list of the names of simulated outcomes, useful for plotting.
     '''
 
     def multinom_sim(X, model, beta):
